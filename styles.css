@@ -1,0 +1,735 @@
+/* ============================================================
+   styles.css
+   ------------------------------------------------------------
+   '허공을 머무르다가' 시집 웹사이트 디자인 (옆으로 넘기는 책 버전)
+
+   색 토큰 (화이트 베이스 + 포인트 컬러 2개)
+     --bg        : #FFFFFF  기본 배경 (화이트)
+     --bg-soft   : #FAFAFA  살짝 톤다운된 배경 (표지용)
+     --ink       : #2E2B26  본문 글씨 (완전 검정 대신 부드러운 먹색)
+     --ink-soft  : #9A958C  보조 텍스트
+     --coral     : #FF8C66  포인트 컬러 1 (제목/숫자/버튼)
+     --mint      : #4FC3A1  포인트 컬러 2 (보조 강조, 밑줄 등)
+     --line      : #ECE9E3  옅은 구분선
+     --highlight : #FFE38A  형광펜 하이라이트
+   ============================================================= */
+
+:root {
+  --bg: #F7F4EF;
+  --bg-soft: #EEE9E0;
+  --ink: #1E1C18;
+  --ink-soft: #7A7468;
+  --accent: #2B4C7E;
+  --accent-light: #5A83BC;
+  --warm: #C97B4B;
+  --line: #D9D3C7;
+  --highlight: #FDE68A;
+  --highlight-active: #FCD34D;
+
+  /* 제목·강조용 — 날린 손글씨체 */
+  --font-display:"Noto Serif KR", serif;
+  /* 본문용 — 가독성 높은 둥근체 */
+  --font-body: "Gowun Dodum", sans-serif;
+
+  --page-pad-x: clamp(20px, 7vw, 48px);
+  --topbar-h: 56px;
+
+  /* 페이지 넘기는 애니메이션 길이 - 너무 길면 답답하고 너무 짧으면
+     "넘긴다"는 느낌이 안 살아서 0.32초로 짧고 가볍게 고정 */
+  --turn-duration: 0.32s;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  height: 100%;
+  overflow: hidden; /* 책 자체는 스크롤하지 않고 옆으로만 넘어감 */
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   상단 바
+============================================================= */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.topbar__home,
+.topbar__menu {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  color: var(--ink);
+}
+
+.topbar__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.topbar__menu {
+  flex-direction: row-reverse;
+}
+
+.topbar__menu-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 20px;
+}
+.topbar__menu-bars span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 1px;
+  background: var(--accent);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.topbar__menu[aria-expanded="true"] .topbar__menu-bars span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.topbar__menu[aria-expanded="true"] .topbar__menu-bars span:nth-child(2) {
+  opacity: 0;
+}
+.topbar__menu[aria-expanded="true"] .topbar__menu-bars span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.topbar__menu-label {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.topbar.is-on-cover .topbar__title { opacity: 0; }
+.topbar.is-on-cover .topbar__menu-bars span { background: rgba(255,255,255,0.7); }
+.topbar.is-on-cover .topbar__menu-label { color: rgba(255,255,255,0.55); }
+
+/* ============================================================
+   목차 오버레이 메뉴
+============================================================= */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(46, 43, 38, 0.32);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease;
+}
+.menu-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(86vw, 380px);
+  background: var(--bg);
+  box-shadow: -12px 0 32px rgba(0,0,0,0.12);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.menu-overlay.is-open .menu-panel {
+  transform: translateX(0);
+}
+
+.menu-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px var(--page-pad-x) 14px;
+  border-bottom: 2px solid var(--line);
+  flex: 0 0 auto;
+}
+.menu-panel__title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin: 0;
+  color: var(--accent);
+}
+.menu-panel__close {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ink-soft);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+}
+
+.menu-panel__list li button {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px var(--page-pad-x);
+  min-height: 44px;
+  font-size: 16px;
+  color: var(--ink);
+  border-bottom: 1px dashed var(--line);
+}
+.menu-panel__list li button:active {
+  background: var(--bg-soft);
+}
+.menu-panel__list .menu-panel__num {
+  display: inline-block;
+  width: 26px;
+  flex: 0 0 auto;
+  color: var(--warm);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+/* ============================================================
+   책 무대 (옆으로 넘기는 핵심 구조)
+   - .stage 는 화면 전체. 그 안에 leaf 3장(prev/current/next)이
+     position:absolute 로 가로로 나란히 배치되어 있고,
+     translateX 로만 움직여서 "슬라이드 + 살짝 휘어짐"을 만든다.
+   - rotateY는 아주 작게(6deg)만 줘서 과한 3D 없이 "종이 느낌"만 살림.
+============================================================= */
+.stage {
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: var(--bg-soft);
+  perspective: 1400px;
+}
+
+.leaf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaf--prev    { transform: translateX(-100%); }
+.leaf--current { transform: translateX(0); }
+.leaf--next    { transform: translateX(100%); }
+
+/* 페이지가 넘어가는 동안에만 transition을 켠다.
+   (정적 상태에서 transition이 걸려있으면 즉시 점프해야 할 때도
+   애니메이션이 끼어들어 어색해지므로, JS가 이 클래스를 잠깐만 붙인다) */
+.stage.is-turning .leaf {
+  transition: transform var(--turn-duration) cubic-bezier(0.35, 0.1, 0.25, 1),
+              box-shadow var(--turn-duration) ease;
+}
+
+/* 넘어가는 쪽 페이지에 옅은 그림자를 줘서 종이가 들리는 느낌을 더함 */
+.stage.is-turning .leaf--current {
+  box-shadow: -6px 0 24px rgba(0,0,0,0.06);
+}
+
+.leaf__inner {
+  width: 100%;
+  min-height: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 28px var(--page-pad-x) 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 탭으로도 넘길 수 있는 좌/우 영역 (화면 가장자리, 너무 넓으면
+   본문 선택을 방해하므로 적당히 좁게) */
+.tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 15%;
+  max-width: 64px;
+  z-index: 5;
+}
+.tap-zone--prev { left: 0; }
+.tap-zone--next { right: 0; }
+
+/* ============================================================
+   하단 페이지 표시
+============================================================= */
+.page-indicator {
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+  z-index: 30;
+  background: rgba(255,255,255,0.85);
+  padding: 4px 12px;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* ============================================================
+   공통 페이지 장식 (eyebrow, kicker 등)
+============================================================= */
+.page__kicker {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--warm);
+  margin: 0 0 8px;
+}
+
+/* 표지는 아래에서 통합 처리 */
+.cover-front {
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  background: var(--page-bg);
+
+  position:relative;
+}
+
+
+.cover-front::before,
+.cover-front::after {
+  display:none;
+}
+
+
+.cover-front__title {
+  font-family:"Noto Serif KR", serif;
+
+  font-size:46px;
+
+  font-weight:400;
+
+  color:#111;
+
+  letter-spacing:-0.05em;
+
+  text-shadow:none;
+
+  filter:none;
+}
+
+/* 수면 반짝임 - 흰 가로선들 */
+.cover-front::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 38px,
+      rgba(255,255,255,0.04) 38px,
+      rgba(255,255,255,0.04) 39px
+    );
+  pointer-events: none;
+}
+
+/* 오른쪽 상단 — 큰 원(해 또는 달) */
+.cover-front::after {
+  content: "";
+  position: absolute;
+  top: clamp(24px, 8vw, 52px);
+  right: clamp(24px, 8vw, 52px);
+  width: clamp(64px, 18vw, 100px);
+  height: clamp(64px, 18vw, 100px);
+  border-radius: 50%;
+  background: rgba(255, 240, 200, 0.82);
+  box-shadow:
+    0 0 0 12px rgba(255, 230, 160, 0.2),
+    0 0 0 28px rgba(255, 220, 120, 0.09);
+  pointer-events: none;
+}
+
+.cover-front__eyebrow {
+  position: absolute;
+  top: clamp(18px, 5vw, 32px);
+  left: var(--page-pad-x);
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.65);
+  margin: 0;
+}
+
+.cover-front__title {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 12vw, 68px);
+  line-height: 1.25;
+  margin: 0 0 4px;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-front__subtitle {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 28px;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-front__year {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin: 0;
+  letter-spacing: 0.08em;
+  position: relative;
+  z-index: 1;
+}
+
+/* 하단 파도선 — 상실의 경계 */
+.cover-front__wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cover-front__deco { display: none; }
+
+.cover-front__hint {
+  position: absolute;
+  bottom: 16px;
+  right: var(--page-pad-x);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+  letter-spacing: 0.04em;
+}
+.cover-front__hint-arrow {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  animation: hint-nudge 1.6s ease-in-out infinite;
+}
+@keyframes hint-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-front__hint-arrow { animation: none; }
+}
+
+/* ============================================================
+   옮긴이의 말
+============================================================= */
+.note__title {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 7vw, 32px);
+  color: var(--accent);
+  margin: 0 0 22px;
+}
+
+.note__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+.note__body p {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--ink);
+  margin: 0;
+  word-break: keep-all;
+}
+
+.note__sign {
+  margin-top: 24px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+/* ============================================================
+   목차
+============================================================= */
+.toc__title {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 7vw, 32px);
+  color: var(--accent);
+  margin: 0 0 18px;
+}
+
+.toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.toc__list li button {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 4px;
+  min-height: 44px;
+  border-bottom: 1px dashed var(--line);
+  color: var(--ink);
+}
+.toc__list li button:active {
+  background: var(--bg-soft);
+}
+
+.toc__num {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--warm);
+  width: 26px;
+}
+
+.toc__title-text {
+  flex: 1 1 auto;
+  font-size: 16px;
+  word-break: keep-all;
+}
+
+.toc__author {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   시 페이지
+============================================================= */
+.poem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.poem__index {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--accent-light);
+  margin: 0 0 12px;
+  letter-spacing: 0.06em;
+}
+
+.poem__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 38px);
+  line-height: 1.35;
+  margin: 0 0 28px;
+  color: var(--ink);
+  word-break: keep-all;
+}
+
+.poem__body {
+  font-size: clamp(17px, 4.6vw, 20px);
+  line-height: 2.1;
+  color: var(--ink);
+  word-break: keep-all;
+}
+
+.poem__line {
+  display: block;
+  min-height: 1em;
+}
+
+.poem__footer {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.poem__footer-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  opacity: 0.5;
+}
+.poem__footer-dot:nth-child(2) { background: var(--warm); opacity: 0.5; }
+.poem__footer-dot:nth-child(3) { background: var(--ink-soft); opacity: 0.25; }
+
+/* ----- 하이라이트 ----- */
+.poem__line .hl {
+  background: linear-gradient(180deg, transparent 55%, var(--highlight) 55%);
+  padding: 0.05em 0.05em;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.poem__line .hl:active {
+  background: linear-gradient(180deg, transparent 55%, var(--highlight-active) 55%);
+}
+
+.poem__hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  opacity: 0.85;
+}
+
+/* 표지 전용 — leaf__inner 패딩 없이 화면 가득 채움 */
+.leaf__inner:has(.cover-front),
+.leaf__inner:has(.cover-back) {
+  padding: 0;
+  height: 100%;
+  min-height: unset;
+}
+
+.cover-back {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+  background: linear-gradient(160deg, #1E3A5C 0%, #2B4C7E 60%, #3C6FA0 100%);
+}
+
+.cover-back__note {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 5.5vw, 24px);
+  line-height: 1.75;
+  color: rgba(255,255,255,0.9);
+  margin: 0;
+  word-break: keep-all;
+}
+
+.cover-back__divider {
+  width: 36px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.35);
+  margin: 4px 0;
+}
+
+.cover-back__publisher {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  margin: 0;
+}
+
+.cover-back__print {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  margin: 0;
+}
+
+/* ============================================================
+   토스트
+============================================================= */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(56px, calc(env(safe-area-inset-bottom) + 40px));
+  transform: translate(-50%, 12px);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.15);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ============================================================
+   모바일 보정
+============================================================= */
+@media (max-width: 480px) {
+  .topbar__title { font-size: 14px; }
+  .menu-panel { width: 88vw; }
+}
+
+html, body, .stage { overflow-x: hidden; }

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<title>허공을 머무르다가</title>
+
+<!-- 캐주얼하면서 손글씨 느낌이 살짝 들어간 폰트 (제목/본문) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gowun+Dodum&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       상단 바 : 책 제목(작게) + 메뉴(목차) 버튼
+  ============================================================= -->
+  <header class="topbar" id="topbar">
+    <button class="topbar__home" id="homeBtn" aria-label="표지로 이동">
+      <span class="topbar__title">허공을 머무르다가</span>
+    </button>
+    <button class="topbar__menu" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuPanel" aria-label="목차 열기">
+      <span class="topbar__menu-bars" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="topbar__menu-label">목차</span>
+    </button>
+  </header>
+
+  <!-- ============================================================
+       메뉴(목차) 오버레이 패널 — 우측 상단 메뉴 버튼으로 열림
+  ============================================================= -->
+  <div class="menu-overlay" id="menuOverlay" tabindex="-1">
+    <nav class="menu-panel" id="menuPanel" aria-label="목차">
+      <div class="menu-panel__header">
+        <h2 class="menu-panel__title">목차</h2>
+        <button class="menu-panel__close" id="menuCloseBtn" aria-label="목차 닫기">&times;</button>
+      </div>
+      <ol class="menu-panel__list" id="menuList">
+        <!-- app.js 가 PAGES 데이터를 읽어 이 안에 항목을 채웁니다 -->
+      </ol>
+    </nav>
+  </div>
+
+  <!-- ============================================================
+       책 무대(stage) — 옆으로 넘기는 페이지가 여기서 움직입니다.
+       항상 이전(prev) / 현재(current) / 다음(next) 3장만 DOM에 두고,
+       app.js의 Pager가 페이지 번호가 바뀔 때마다 내용만 새로 그립니다.
+       (31편+표지 35장을 전부 DOM에 깔아두지 않아 모바일에서도 가볍습니다)
+  ============================================================= -->
+  <main class="stage" id="stage">
+    <div class="leaf leaf--prev"    id="leafPrev"></div>
+    <div class="leaf leaf--current" id="leafCurrent"></div>
+    <div class="leaf leaf--next"    id="leafNext"></div>
+
+    <!-- 좌/우 탭 영역 (스와이프 없이 가볍게 탭만 해도 넘어가도록) -->
+    <button class="tap-zone tap-zone--prev" id="tapPrev" aria-label="이전 장"></button>
+    <button class="tap-zone tap-zone--next" id="tapNext" aria-label="다음 장"></button>
+  </main>
+
+  <!-- 현재 몇 페이지 / 전체 몇 페이지인지 보여주는 하단 표시 -->
+  <div class="page-indicator" id="pageIndicator" aria-hidden="true"></div>
+
+  <!-- ============================================================
+       하이라이트 안내용 작은 토스트 (저장됨 알림)
+  ============================================================= -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 데이터 파일을 먼저 불러온 뒤, 그 데이터를 사용하는 app.js를 불러옵니다 -->
+  <script src="poems-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
